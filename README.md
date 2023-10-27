@@ -1,34 +1,36 @@
-# Deploy at the speed of rad!
+This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
-An ML Infra Framework/Orchestrator thing
+## Getting Started
 
-## Disclaimer: I have no idea what I'm doing
+First, run the development server:
 
-## Motivation
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
 
-Deploying ML models nicely is difficult.
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-- Inference code is often tied to a infra provider (bad)
-- Building ML images on Mac without a base image sucks
-- Inputs/outputs for each model varies widely
-- Inference code and business logic end up being colocated (bad)
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-There should be a framework where we can separate inference from business logic and deploy easily.
+This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
 
-## Constraints
+## Learn More
 
-1. Don’t worry about generalizing deployment
-2. Don’t worry about separating business logic vs. inference just yet
-3. Don’t worry about progress indicators just yet
-4. Don’t worry about generalized outputs
+To learn more about Next.js, take a look at the following resources:
 
-## Goal
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-1. Deploy 3 ML models
-    1. An LLM
-    2. A 2D image thing
-    3. A heavy 3D thing
-2. Prompts should go to the same place
-    1. Some kind of API endpoint
-    2. `POST /run` either returns streaming HTTP or an HTTP response
-3. You should see a list of previous prompts in a console
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
