@@ -1,5 +1,6 @@
 import pc from "picocolors";
-import server from "./server.ts";
+import server from "./server";
+import "./db";
 
 const message = `\
 ${pc.green(`

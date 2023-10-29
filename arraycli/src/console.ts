@@ -23,7 +23,6 @@ export class ArrayConsole {
   }
 
   public onMessage(event: z.infer<typeof clientEvent>) {
-    console.log(event);
     if (event.type === MessageTypes.Event) {
       if (event.event === EventTypes.Heartbeat) handleHeartbeat(event, this);
       if (event.event === EventTypes.Prompt) handlePrompt(event, this);

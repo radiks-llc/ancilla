@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { EventTypes, MessageTypes } from "../types";
 import { ArrayConsole } from "../console";
+import { db, prompts } from "../db";
 
 export const prompt = z.object({
   type: z.literal(MessageTypes.Event),
@@ -10,7 +11,9 @@ export const prompt = z.object({
 
 export type Prompt = z.infer<typeof prompt>;
 
-export function handlePrompt(stuff: Prompt, c: ArrayConsole) {
-  console.log(stuff);
+export async function handlePrompt(stuff: Prompt, c: ArrayConsole) {
+  await db.insert(prompts).values({
+    payload: stuff.payload,
+  });
   return null;
 }
