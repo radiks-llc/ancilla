@@ -153,7 +153,9 @@ export class ArrayServer {
 
           let observer: Unsubscribable | undefined;
 
+          console.log("input", messages);
           for (const incoming of messages) {
+            console.log("for", incoming);
             if (!incoming.method || !incoming.params) {
               continue;
             }
@@ -162,7 +164,7 @@ export class ArrayServer {
               observer?.unsubscribe();
               observers.delete(ws.data.id.toString());
 
-              return void ws.send(
+              ws.send(
                 JSON.stringify({
                   id: incoming.id,
                   jsonrpc: incoming.jsonrpc,
@@ -171,6 +173,8 @@ export class ArrayServer {
                   },
                 })
               );
+
+              continue;
             }
 
             const result = await callProcedure({
@@ -181,8 +185,8 @@ export class ArrayServer {
               ctx: {},
             });
 
-            if (incoming.method !== "subscription")
-              return void ws.send(
+            if (incoming.method !== "subscription") {
+              ws.send(
                 JSON.stringify(
                   transformTRPCResponse(router, {
                     id: incoming.id,
@@ -194,6 +198,8 @@ export class ArrayServer {
                   })
                 )
               );
+              continue;
+            }
 
             ws.send(
               JSON.stringify({

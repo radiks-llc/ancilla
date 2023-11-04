@@ -8,20 +8,22 @@ const ee = new EventEmitter();
 const t = initTRPC.create();
 
 export const router = t.router({
-  onAdd: t.procedure.subscription(() => {
-    return observable<Prompt>((emit) => {
-      const onPrompt = (data: Prompt) => emit.next(data);
+  onPrompt: t.procedure.subscription(() =>
+    observable<Prompt>((emit) => {
+      console.log("subbed");
+      const onPrompt = (data: Prompt) => {
+        console.log("subbed");
+        emit.next(data);
+      };
       ee.on("prompt", onPrompt);
       return () => ee.off("prompt", onPrompt);
-    });
-  }),
-  getPrompts: t.procedure
-    .input(z.object({}))
-    .query(() => db.select().from(prompts)),
+    })
+  ),
+  getPrompts: t.procedure.query(() => db.select().from(prompts)),
   sendPrompt: t.procedure
     .input(
       z.object({
-        payload: z.string(),
+        payload: z.object({}).passthrough(),
       })
     )
     .mutation(async (opts) => {
