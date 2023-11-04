@@ -3,24 +3,21 @@
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import useArrayClient from "@/lib/array/use-client";
-import { EventTypes, MessageTypes } from "@cli/types";
+import { trpc } from "@/lib/utils";
 
 export function PromptForm() {
-  const client = useArrayClient();
+  const prompt = trpc.sendPrompt.useMutation();
   const [value, setValue] = useState("");
 
-  const onSubmit = () => {
-    client.send({
-      type: MessageTypes.Event,
-      event: EventTypes.Prompt,
-      payload: value,
-    });
-  };
+  const onSubmit = () => prompt.mutate({ payload: JSON.stringify({ value }) });
 
   return (
     <div className="flex gap-16">
-      <Textarea value={value} onChange={(e) => setValue(e.target.value)} />
+      <Textarea
+        value={value}
+        // @ts-ignore
+        onChange={(e) => setValue(e.target.value)}
+      />
       <Button onClick={onSubmit}>Submit</Button>
     </div>
   );

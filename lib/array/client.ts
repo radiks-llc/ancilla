@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { clientEvent } from "@cli/events";
+import { EventTypes, MessageTypes } from "@/arraycli/src/types";
 
 /**
  * ArrayClient
@@ -16,6 +17,8 @@ export class ArrayClient {
   private readonly handlers: { [key: string]: (data: any) => void } = {};
   private readonly queue: string[] = [];
 
+  private lastHeartbeat: number = Date.now();
+  private heartbeatInterval?: number;
   private connected: boolean = false;
   private connectionPromise?: Promise<void>;
 
@@ -31,9 +34,13 @@ export class ArrayClient {
       this.queue.length = 0;
     };
     this.client.onmessage = (msg) => {
+      if (typeof msg.data !== "string") throw new Error("Expected string data");
       const data = JSON.parse(msg.data);
       if (data.type === "event") {
         if (this.handlers[data.event]) {
+          if (data.type === MessageTypes.Heartbeat)
+            this.lastHeartbeat = Date.now();
+
           this.handlers[data.event](data.data);
         }
       }
@@ -47,6 +54,13 @@ export class ArrayClient {
   }
 
   /**
+   * Returns the last time a heartbeat was received from the server
+   */
+  public getLastHeartbeat(): number {
+    return this.lastHeartbeat;
+  }
+
+  /**
    * Connects to the server and returns a promise that resolves
    * when the connection is established.
    *
@@ -55,6 +69,11 @@ export class ArrayClient {
    */
   public connect(): Promise<void> {
     if (this.connected) {
+      // @ts-ignore
+      this.heartbeatInterval = window.setInterval(() => {
+        this.send({ type: MessageTypes.Heartbeat });
+      }, 1000);
+
       return Promise.resolve();
     } else if (this.connectionPromise) {
       return this.connectionPromise;
@@ -79,7 +98,7 @@ export class ArrayClient {
     if (this.connected) {
       this.client.send(JSON.stringify(msg));
     } else {
-      this.queue.push(JSON.stringify(msg));
+      if (msg.type === MessageTypes.Event) this.queue.push(JSON.stringify(msg));
     }
   }
 
