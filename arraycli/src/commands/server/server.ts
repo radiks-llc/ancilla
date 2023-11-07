@@ -153,9 +153,7 @@ export class ArrayServer {
 
           let observer: Unsubscribable | undefined;
 
-          console.log("input", messages);
           for (const incoming of messages) {
-            console.log("for", incoming);
             if (!incoming.method || !incoming.params) {
               continue;
             }
@@ -280,6 +278,4 @@ export class ArrayServer {
   }
 }
 
-const server = new ArrayServer();
-
-export default server;
+export default () => new ArrayServer();

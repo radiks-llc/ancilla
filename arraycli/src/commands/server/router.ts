@@ -10,11 +10,7 @@ const t = initTRPC.create();
 export const router = t.router({
   onPrompt: t.procedure.subscription(() =>
     observable<Prompt>((emit) => {
-      console.log("subbed");
-      const onPrompt = (data: Prompt) => {
-        console.log("subbed");
-        emit.next(data);
-      };
+      const onPrompt = (data: Prompt) => emit.next(data);
       ee.on("prompt", onPrompt);
       return () => ee.off("prompt", onPrompt);
     })

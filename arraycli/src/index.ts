@@ -1,25 +1,16 @@
-import pc from "picocolors";
-import server from "./server";
-import "./db";
+import commandRunServer from "./commands/server";
+import minimist from "minimist";
 
-const message = `\
-${pc.green(`
-⠀⠀⠀⠀⠀⠀⠀⠀⣠⣶⣶⣶⣶⣶⣶⣶⣶⣶⣦⣤⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⣀⣴⣾⠿⠿⠛⠛⠋⠉⠉⠉⠛⠛⠛⠿⢿⣿⣿⣿⣦⣄⠀⠀⠀⠀⠀
-⠀⠀⣠⣾⠟⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠙⢿⣿⣿⣷⡄⠀⠀⠀
-⠰⣶⣿⡏⠀⠀⠀⠀⠀⠀⠀⣠⣶⣶⣦⣄⣀⡀⠀⠀⠀⠀⠀⢿⣿⣿⣿⣄⣀⣀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠛⠿⠿⠿⠋⠉⠁⠀⠀⠀⠀⢀⣿⣿⣿⣿⠋⠉⠉
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣴⣿⣿⣿⣿⠋⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⢠⣾⣶⣶⣤⣤⣤⣤⣤⣤⣴⣶⣾⣿⣿⣿⣿⠿⠋⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠈⠉⠙⠛⠛⠛⢿⣿⡿⠿⠿⠿⠛⠋⠉⠀⠀⠀⠀⠀⠀⠀⠀`)}
+let commands = minimist(process.argv.slice(2));
 
-${pc.bold("Array Server Started.")}
-Web:        ${pc.underline(
-  pc.blue(`https://${server.bun.hostname}:${server.bun.port}`)
-)}
-Websockets: ${pc.underline(
-  pc.blue(`wss://${server.bun.hostname}:${server.bun.port}`)
-)} (debug mode)
-`;
-
-console.log(message);
+switch (commands._[0]) {
+  case "start":
+    commandRunServer();
+    break;
+  case "build":
+    console.log("build");
+    break;
+  default:
+    console.log("Command not found.");
+    break;
+}
