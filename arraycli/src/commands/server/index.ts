@@ -23,4 +23,6 @@ export default async () => {
     pc.blue(`wss://${server.bun.hostname}:${server.bun.port}`)
   )} (debug mode)
   `;
+
+  console.log(message);
 };

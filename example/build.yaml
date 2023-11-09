@@ -1,0 +1,5 @@
+version: 1.0
+name: cool ai app
+functions:
+  - test_device
+  - test_host

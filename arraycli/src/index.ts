@@ -1,14 +1,15 @@
-import commandRunServer from "./commands/server";
 import minimist from "minimist";
 
-let commands = minimist(process.argv.slice(2));
+const commands = minimist(process.argv.slice(2));
 
 switch (commands._[0]) {
   case "start":
-    commandRunServer();
+    const { default: commandRunServer } = await import("./commands/server");
+    await commandRunServer();
     break;
   case "build":
-    console.log("build");
+    const { default: commandBuild } = await import("./commands/build");
+    commandBuild();
     break;
   default:
     console.log("Command not found.");

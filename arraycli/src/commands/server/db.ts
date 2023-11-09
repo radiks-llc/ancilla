@@ -16,7 +16,7 @@ export const prompts = sqliteTable("prompts", {
 
 export type Prompt = InferSelectModel<typeof prompts>;
 
-db.run(sql`DROP TABLE prompts`);
+// db.run(sql`DROP TABLE prompts IF EXISTS`);
 
 db.run(sql`CREATE TABLE IF NOT EXISTS prompts (
     id INTEGER PRIMARY KEY,

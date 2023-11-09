@@ -6,7 +6,7 @@ import { router } from "./router";
 import { AnyRouter, callProcedure, TRPCError } from "@trpc/server";
 import { TRPCResponse, TRPCResponseMessage } from "@trpc/server/rpc";
 
-// Copied a lot of this from
+// Be not afraid, I copied a lot of this from
 // https://github.com/elysiajs/elysia-trpc/tree/main
 
 export function transformTRPCResponseItem<
