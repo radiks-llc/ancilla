@@ -14,10 +14,16 @@ const projectSchema = z.object({
 type Project = z.infer<typeof projectSchema>;
 
 const getDevicesFromPy = async (path: string) => {
-  const command = `python3 -c "from ancilla import get_devices(); from ${path} import *; print(get_devices())"`;
-  const proc = Bun.spawn(command.split(" "));
-  const out = await new Response(proc.stdout).text();
-  console.log(out);
+  console.log(path.replace("/", "."));
+  const pyPath = path.replace("/", ".");
+  const proc = Bun.spawn([
+    "python",
+    "-c",
+    `from ancilla import get_devices; from ${pyPath} import *; print(get_devices())`,
+  ]);
+  const out = (await new Response(proc.stdout).text()).trim();
+  const err = (await new Response(proc.stderr).text()).trim();
+  console.log({ out, err });
 };
 
 const startBuildingRoute = async (_: Project, route: string) => {
@@ -25,18 +31,18 @@ const startBuildingRoute = async (_: Project, route: string) => {
   const handlerFile = rest.pop();
   const path = rest.join("/");
 
-  if (!container || !handlerFile || !path) {
+  if (!container || !handlerFile) {
     console.error(
-      `${pc.red("The route")} ${pc.green(`[${route}]`)} ${pc.red(
+      `Error: ${pc.red("The route")} ${pc.green(`[${route}]`)} ${pc.red(
         "is invalid."
       )}`
     );
-    console.error(pc.green("The route should be in the format:"));
-    console.error(pc.green("container/path/to/app.handler"));
+    console.info("The route should be in the format:");
+    console.info(pc.green("    container/path/to/app.handler"));
     exit(1);
   }
 
-  const devices = await getDevicesFromPy(`${route.split(".")[0]}.py`);
+  const devices = await getDevicesFromPy(route.split(".")[0]);
 };
 
 const readAndParseConfigFile = async (path: string) => {
