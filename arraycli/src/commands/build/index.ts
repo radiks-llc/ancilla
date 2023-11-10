@@ -8,15 +8,36 @@ import pc from "picocolors";
 const projectSchema = z.object({
   version: z.number(),
   name: z.string(),
-  functions: z.array(z.string()),
+  router: z.array(z.string()),
 });
 
 type Project = z.infer<typeof projectSchema>;
 
-const startBuildingFunction = async (
-  project: Project,
-  functionPath: string
-) => {};
+const getDevicesFromPy = async (path: string) => {
+  const command = `python3 -c "from ancilla import get_devices(); from ${path} import *; print(get_devices())"`;
+  const proc = Bun.spawn(command.split(" "));
+  const out = await new Response(proc.stdout).text();
+  console.log(out);
+};
+
+const startBuildingRoute = async (_: Project, route: string) => {
+  const [container, ...rest] = route.split("/");
+  const handlerFile = rest.pop();
+  const path = rest.join("/");
+
+  if (!container || !handlerFile || !path) {
+    console.error(
+      `${pc.red("The route")} ${pc.green(`[${route}]`)} ${pc.red(
+        "is invalid."
+      )}`
+    );
+    console.error(pc.green("The route should be in the format:"));
+    console.error(pc.green("container/path/to/app.handler"));
+    exit(1);
+  }
+
+  const devices = await getDevicesFromPy(`${route.split(".")[0]}.py`);
+};
 
 const readAndParseConfigFile = async (path: string) => {
   const text = await Bun.file(path).text();
@@ -43,8 +64,8 @@ const readAndParseConfigFile = async (path: string) => {
 const handleProject = async (path: string) => {
   const parsedProject = await readAndParseConfigFile(path);
   await Promise.all(
-    parsedProject.functions.map((functionPath) =>
-      startBuildingFunction(parsedProject, functionPath)
+    parsedProject.router.map((route) =>
+      startBuildingRoute(parsedProject, route)
     )
   );
 };
