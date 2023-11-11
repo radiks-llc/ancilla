@@ -1,4 +1,5 @@
 version: 1.0
 name: cool ai app
 router:
-  - test_host/app.handler
+  - path: /app
+    handler: test_host/app.handler

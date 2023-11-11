@@ -2,6 +2,8 @@
 # test_device = Device("test")
 # get_devices() # returns a list of devices (["test_device"])
 
+import json
+
 devices = []
 
 
@@ -18,4 +20,4 @@ class Device:
 
 
 def get_devices():
-    return list(map(lambda x: x.name, devices))
+    return json.dumps([device.name for device in devices])
