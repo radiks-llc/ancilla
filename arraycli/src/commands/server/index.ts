@@ -1,6 +1,6 @@
 import pc from "picocolors";
 import startDevServer from "./server";
-import "./db";
+import "@/db";
 
 export default async () => {
   const server = startDevServer();

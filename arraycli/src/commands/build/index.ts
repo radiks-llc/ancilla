@@ -5,6 +5,9 @@ import { exit } from "process";
 import { z } from "zod";
 import pc from "picocolors";
 import fs from "fs";
+import { ProjectConfig, projectSchema } from "@/project";
+import { FunctionProps } from "@/function";
+import { useContainerHandler } from "@/runtime/handlers/container";
 
 const dockerfileHost = `
 FROM public.ecr.aws/lambda/python:3.11
@@ -12,9 +15,9 @@ COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:0.7.1 /lambda-adapter /opt
 
 ENV LAMBDA_TASK_ROOT=/var/task
 
-COPY requirements.txt \${LAMBDA_TASK_ROOT}
+COPY requirements.txt* \${LAMBDA_TASK_ROOT}
 
-RUN pip install -r requirements.txt
+RUN [ ! -f requirements.txt ] || pip install -r requirements.txt
 
 COPY app.py \${LAMBDA_TASK_ROOT}
 
@@ -29,43 +32,14 @@ ENV RUNPOD_TASK_ROOT=/var/task
 ENV NVIDIA_DRIVER_CAPABILITIES compute,graphics,utility,video
 RUN apt-get update && apt-get install -qq libglfw3-dev libgles2-mesa-dev freeglut3-dev
 
-COPY requirements.txt \${RUNPOD_TASK_ROOT}
+COPY requirements.txt* \${RUNPOD_TASK_ROOT}
 
-RUN pip install -r requirements.txt
+RUN [ ! -f requirements.txt ] || pip install -r requirements.txt
 
 COPY app.py \${RUNPOD_TASK_ROOT}
 
 CMD [ "python3", "-u", "app.py" ]
 `;
-
-const functionSchema = z.object({
-  path: z.string(),
-  handler: z.string(),
-  memory: z.number().optional(),
-});
-
-type Function = z.infer<typeof functionSchema>;
-
-const projectSchema = z
-  .object({
-    version: z.number(),
-    name: z.string(),
-    router: z.array(functionSchema),
-  })
-  .refine((data) => {
-    if (data.version !== 1) {
-      throw new Error("Invalid version number.");
-    }
-    return true;
-  })
-  .refine(
-    (data) =>
-      new Set(data.router.map((route) => route.path)).size ===
-      data.router.length,
-    {
-      message: "Duplicate paths in router",
-    }
-  );
 
 const clearDir = (path: string) => {
   if (fs.existsSync(path)) {
@@ -87,7 +61,9 @@ const copyFile = async (src: string, dest: string) => {
   Bun.write(dest, await Bun.file(src).text());
 };
 
-type Project = z.infer<typeof projectSchema>;
+const inferFunctionId = (path: string) => {
+  return path.replace("/", "_");
+};
 
 const getDevicesFromPy = async (path: string) => {
   const pyPath = path.replace("/", ".");
@@ -113,7 +89,10 @@ const startBuildingDevice = async (device: string) => {
   Bun.write(`${fnPath}/Dockerfile`, dockerfileDevice);
 };
 
-const startBuildingRoute = async (config: ProjectConfig, func: Function) => {
+const startBuildingRoute = async (
+  config: ProjectConfig,
+  func: FunctionProps
+) => {
   const functionName = func.path.replace("/", "_");
   const fnPath = `.ancilla/output/functions/${functionName}.func`;
   makeDir(fnPath);
@@ -145,15 +124,6 @@ const startBuildingRoute = async (config: ProjectConfig, func: Function) => {
   return devices;
 };
 
-type Route = {
-  src: string;
-  dest: string;
-};
-
-type ProjectConfig = {
-  routes: Route[];
-};
-
 const readAndParseConfigFile = async (path: string) => {
   const text = await Bun.file(path).text();
   const project = YAML.load(text) as unknown;
@@ -178,21 +148,37 @@ const readAndParseConfigFile = async (path: string) => {
 
 const handleProject = async (path: string) => {
   clearDir(".ancilla/");
-  const parsedProject = await readAndParseConfigFile(path);
+  const parsed = await readAndParseConfigFile(path);
   const config: ProjectConfig = {
     routes: [],
   };
   const devices = new Set(
     await Promise.all(
-      parsedProject.router.map((route) => startBuildingRoute(config, route))
+      parsed.router.map((route) => startBuildingRoute(config, route))
     )
   );
 
   await Promise.all(Array.from(devices).map(startBuildingDevice));
 
   writeJSON(".ancilla/output/config.json", config);
+  return { parsed, config };
 };
 
 export default async () => {
-  await handleProject("./build.yaml");
+  const { build } = useContainerHandler();
+
+  const { parsed } = await handleProject("./build.yaml");
+
+  await Promise.all(
+    parsed.router.map((route) =>
+      build({
+        functionID: inferFunctionId(route.path),
+        mode: "deploy",
+        imageRoot: `.ancilla/output/functions/${inferFunctionId(
+          route.path
+        )}.func`,
+        props: route,
+      })
+    )
+  );
 };
