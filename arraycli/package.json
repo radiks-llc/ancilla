@@ -14,7 +14,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@trpc/server": "^10.43.1",
+    "@trpc/server": "^10.43.3",
     "drizzle-orm": "^0.28.6",
     "js-yaml": "^4.1.0",
     "minimist": "^1.2.8",

@@ -15,3 +15,23 @@ export const functionSchema = z.object({
 });
 
 export type FunctionProps = z.infer<typeof functionSchema>;
+
+let functions: FunctionProps[] = [];
+
+export const useFunctions = () => {
+  const getID = (func: FunctionProps) => {
+    return func.path.replace("/", "_");
+  };
+  const fromPath = (path: string) => {
+    return functions.find((func) => func.path === path);
+  };
+  return {
+    fromID: (id: string) => functions.find((func) => getID(func) === id),
+    fromPath,
+    functions,
+  };
+};
+
+export const setFunctions = (newFunctions: FunctionProps[]) => {
+  functions = newFunctions;
+};

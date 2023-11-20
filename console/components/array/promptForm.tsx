@@ -9,7 +9,7 @@ export function PromptForm() {
   const prompt = trpc.sendPrompt.useMutation();
   const [value, setValue] = useState("");
 
-  const onSubmit = () => prompt.mutate({ payload: { value } });
+  const onSubmit = () => prompt.mutate({ path: "/app", payload: { value } });
 
   return (
     <div className="flex gap-16">

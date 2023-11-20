@@ -40,5 +40,8 @@ def AncillaAPI():
     return FastAPI()
 
 
+print("wow", flush=True)
+
+
 def run(api, host="0.0.0.0", port=int(os.environ.get("PORT", "8080"))):
     uvicorn.run(api, host=host, port=port)

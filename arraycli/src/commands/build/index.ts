@@ -5,24 +5,9 @@ import { exit } from "process";
 import { z } from "zod";
 import pc from "picocolors";
 import fs from "fs";
-import { ProjectConfig, projectSchema } from "@/project";
-import { FunctionProps } from "@/function";
-import { useContainerHandler } from "@/runtime/handlers/container";
-
-const dockerfileHost = `
-FROM public.ecr.aws/lambda/python:3.11
-COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:0.7.1 /lambda-adapter /opt/extensions/
-
-ENV LAMBDA_TASK_ROOT=/var/task
-
-COPY requirements.txt* \${LAMBDA_TASK_ROOT}
-
-RUN [ ! -f requirements.txt ] || pip install -r requirements.txt
-
-COPY app.py \${LAMBDA_TASK_ROOT}
-
-CMD [ "app.handler" ]
-`;
+import { ProjectConfig, projectSchema, setProject } from "@/project";
+import { FunctionProps, setFunctions } from "@/function";
+import { DeviceProps, setDevices } from "@/device";
 
 const dockerfileDevice = `
 FROM nvidia/cuda:12.0.1-runtime-ubuntu22.04
@@ -61,10 +46,6 @@ const copyFile = async (src: string, dest: string) => {
   Bun.write(dest, await Bun.file(src).text());
 };
 
-const inferFunctionId = (path: string) => {
-  return path.replace("/", "_");
-};
-
 const getDevicesFromPy = async (path: string) => {
   const pyPath = path.replace("/", ".");
   const proc = Bun.spawn([
@@ -79,42 +60,32 @@ const getDevicesFromPy = async (path: string) => {
     console.error(err);
     exit(1);
   }
-  return JSON.parse(out);
+  return { out, err };
 };
 
-const startBuildingDevice = async (device: string) => {
+const startBuildingDevice = async (device: DeviceProps) => {
   const fnPath = `.ancilla/output/devices/${device}.dev`;
+  const devicePath = device.handler.split(".")[0];
   makeDir(fnPath);
-  copyFile(device + "/app.py", `${fnPath}/app.py`);
+  copyFile(devicePath + ".py", `${fnPath}/app.py`);
+  writeJSON(`${fnPath}/config.json`, device);
   Bun.write(`${fnPath}/Dockerfile`, dockerfileDevice);
 };
 
-const startBuildingRoute = async (
-  config: ProjectConfig,
-  func: FunctionProps
-) => {
+const config: ProjectConfig = {
+  routes: [],
+};
+
+const startBuildingRoute = async (func: FunctionProps) => {
   const functionName = func.path.replace("/", "_");
   const fnPath = `.ancilla/output/functions/${functionName}.func`;
   makeDir(fnPath);
-  const [container, ...rest] = func.handler.split("/");
-  const handlerFile = rest.pop();
-
-  if (!container || !handlerFile) {
-    console.error(
-      `Error: ${pc.red("The route")} ${pc.green(`[${func.path}]`)} ${pc.red(
-        "is invalid."
-      )}`
-    );
-    console.info("The route should be in the format:");
-    console.info(pc.green("    container/path/to/app.handler"));
-    exit(1);
-  }
 
   const handlerScript = func.handler.split(".")[0];
   const devices = await getDevicesFromPy(handlerScript);
   writeJSON(`${fnPath}/devices.json`, devices);
+  writeJSON(`${fnPath}/config.json`, func);
   copyFile(handlerScript + ".py", `${fnPath}/app.py`);
-  Bun.write(`${fnPath}/Dockerfile`, dockerfileHost);
 
   config.routes.push({
     src: func.path,
@@ -146,39 +117,38 @@ const readAndParseConfigFile = async (path: string) => {
   }
 };
 
-const handleProject = async (path: string) => {
-  clearDir(".ancilla/");
-  const parsed = await readAndParseConfigFile(path);
-  const config: ProjectConfig = {
-    routes: [],
+export const useBuilder = (path: string) => {
+  const build = async () => {
+    clearDir(".ancilla/");
+    const project = await readAndParseConfigFile(path);
+
+    const functions = project.router;
+
+    const usedDevices = new Set(
+      await Promise.all(project.router.map(startBuildingRoute))
+    );
+
+    const devices = project.devices;
+
+    await Promise.all(Array.from(devices).map(startBuildingDevice));
+
+    writeJSON(".ancilla/output/config.json", config);
+    return {
+      project,
+      config,
+      functions,
+      devices,
+    };
   };
-  const devices = new Set(
-    await Promise.all(
-      parsed.router.map((route) => startBuildingRoute(config, route))
-    )
-  );
-
-  await Promise.all(Array.from(devices).map(startBuildingDevice));
-
-  writeJSON(".ancilla/output/config.json", config);
-  return { parsed, config };
+  return { build };
 };
 
 export default async () => {
-  const { build } = useContainerHandler();
+  const { build } = useBuilder("build.yaml");
 
-  const { parsed } = await handleProject("./build.yaml");
+  const { project, functions, devices } = await build();
 
-  await Promise.all(
-    parsed.router.map((route) =>
-      build({
-        functionID: inferFunctionId(route.path),
-        mode: "deploy",
-        imageRoot: `.ancilla/output/functions/${inferFunctionId(
-          route.path
-        )}.func`,
-        props: route,
-      })
-    )
-  );
+  setProject(project);
+  setFunctions(functions);
+  setDevices(devices);
 };

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { functionSchema } from "@/function";
+import { deviceSchema } from "./device";
 
 type Route = {
   src: string;
@@ -14,6 +15,7 @@ export const projectSchema = z
   .object({
     version: z.number(),
     name: z.string(),
+    devices: z.array(deviceSchema).optional().default([]),
     router: z.array(functionSchema),
   })
   .refine((data) => {

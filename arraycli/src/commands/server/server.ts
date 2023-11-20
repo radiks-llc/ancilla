@@ -139,6 +139,7 @@ export class ArrayServer {
           })
         )
           return;
+
         return new Response("Upgrade failed :(", { status: 500 });
       },
       websocket: {
