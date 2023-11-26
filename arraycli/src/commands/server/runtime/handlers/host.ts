@@ -16,7 +16,6 @@ declare module "@/bus" {
         response: string;
         stdout: string;
         stderr: string;
-        handlerReturn: any;
       };
     };
   }
@@ -27,7 +26,7 @@ let nextPort = 8080;
 export const useHostHandler = () => {
   const bus = useBus();
   const { fromPath, functions } = useFunctions();
-  const processes = new Map<string, Subprocess<"ignore", "pipe", "inherit">>();
+  const processes = new Map<string, Subprocess<"ignore", "pipe", "pipe">>();
 
   // const installRequirements = async (txtPath: string) => {
   //   if (await Bun.file(txtPath).exists()) {
@@ -38,15 +37,14 @@ export const useHostHandler = () => {
   //   }
   // };
 
-  // const serverStarted = async (stdout: ReadableStream<Uint8Array>) => {
-  //   for await (const chunk of stdout) {
-  //     console.log({ chunk });
-  //     const str = new TextDecoder().decode(chunk);
-  //     if (str.includes("Running Ancilla API")) {
-  //       return;
-  //     }
-  //   }
-  // };
+  const serverStarted = async (stdout: ReadableStream<Uint8Array>) => {
+    for await (const chunk of stdout) {
+      const str = new TextDecoder().decode(chunk);
+      if (str.includes("Uvicorn running on http://")) {
+        return;
+      }
+    }
+  };
 
   const invoke = async ({ path, payload }: HostPayload) => {
     const fn = fromPath(path);
@@ -60,6 +58,9 @@ export const useHostHandler = () => {
       const [handlerFile] = handler.split(".");
 
       proc = await Bun.spawn(["python", handlerFile + ".py"], {
+        shell: true,
+        stderr: "pipe",
+        stdout: "pipe",
         env: {
           ...process.env,
           ANCILLA_ENV: "dev",
@@ -71,15 +72,12 @@ export const useHostHandler = () => {
       processes.set(path, proc);
     }
 
-    // Readable stream
-    // wait for process to print "Uvicorn running on"
-    // await serverStarted(proc.stdout);
-    // i give up, uvicorn is not printing anything to stdout probably because it's
-    // buffering it. i'm just going to wait a second and hope that's enough time
-    await new Promise((resolve) => setTimeout(resolve, 5000));
+    await serverStarted(proc.stderr);
+
+    let response = null;
 
     try {
-      const fetchResult = await fetch(`http://localhost:${nextPort}/`, {
+      const fetchResult = await fetch(`http://0.0.0.0:${nextPort}/`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -87,18 +85,19 @@ export const useHostHandler = () => {
         // body: JSON.stringify(payload),
       });
 
-      const stdout = (await new Response(proc.stdout).text()).trim();
-      const stderr = await new Response(proc.stderr).text();
-
-      console.log({ stdout, stderr });
-      const handlerReturn = JSON.parse(stdout);
-      const response = await fetchResult.text();
-      return { response, stdout, stderr, handlerReturn };
+      response = await fetchResult.text();
+    } catch (err) {
+      console.log(err);
     } finally {
-      // nextPort += 1;
-      // proc.kill();
-      // processes.delete(path);
+      nextPort += 1;
+      proc.kill();
+      processes.delete(path);
     }
+
+    const stdout = (await new Response(proc.stdout).text()).trim();
+    const stderr = await new Response(proc.stderr).text();
+
+    return { response, stdout, stderr };
   };
 
   bus.subscribe("host.invoke", async ({ properties: { path, payload } }) => {
@@ -107,7 +106,7 @@ export const useHostHandler = () => {
   });
 
   bus.subscribe("host.invoke.result", ({ properties: { path, output } }) => {
-    console.log({ path, output });
+    // console.log({ path, output });
   });
 
   return { invoke };

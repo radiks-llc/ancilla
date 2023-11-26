@@ -36,9 +36,18 @@ def get_devices():
     return json.dumps([device.name for device in devices])
 
 
-def AncillaAPI():
-    return FastAPI()
+app = None
 
 
-def run(api, host="0.0.0.0", port=int(os.environ.get("PORT", "8080"))):
-    uvicorn.run(api, host=host, port=port)
+def host(api, host="0.0.0.0", port=int(os.environ.get("PORT", "8080"))):
+    global app
+    app = api
+    if __name__ == "__main__":
+        uvicorn.run(api, host=host, port=port)
+
+
+def get_app():
+    global app
+    if app is None:
+        raise Exception("App not initialized. Use host() to initialize.")
+    return app
