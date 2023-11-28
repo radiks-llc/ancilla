@@ -1,8 +1,5 @@
 "use client";
 
-import useArrayClient from "@/lib/array/use-prompts";
-import { useEffect, useState } from "react";
-
 export default function ConnectionIndicator() {
   return (
     <div className="absolute top-0 right-0 m-4">
