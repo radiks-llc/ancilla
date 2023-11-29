@@ -13,15 +13,13 @@ declare module "@/bus" {
     "host.invoke.result": {
       path: string;
       output: {
-        response: string;
+        response: string | null;
         stdout: string;
         stderr: string;
       };
     };
   }
 }
-
-let nextPort = 8080;
 
 export const useHostHandler = () => {
   const bus = useBus();
@@ -57,19 +55,20 @@ export const useHostHandler = () => {
       const { handler } = fn;
       const [handlerFile] = handler.split(".");
 
-      proc = await Bun.spawn(["python", handlerFile + ".py"], {
-        shell: true,
+      proc = Bun.spawn(["python", handlerFile + ".py"], {
         stderr: "pipe",
         stdout: "pipe",
         env: {
           ...process.env,
           ANCILLA_ENV: "dev",
-          LOG_LEVEL: "DEBUG",
-          PYTHONUNBUFFERED: "TRUE",
-          PORT: `${nextPort}`,
+          PORT: "8080",
         },
       });
       processes.set(path, proc);
+    }
+
+    if (!proc || !proc.stderr) {
+      throw new Error(`Failed to start server for ${path}`);
     }
 
     await serverStarted(proc.stderr);
@@ -77,7 +76,7 @@ export const useHostHandler = () => {
     let response = null;
 
     try {
-      const fetchResult = await fetch(`http://0.0.0.0:${nextPort}/`, {
+      const fetchResult = await fetch(`http://0.0.0.0:8080/`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -89,7 +88,6 @@ export const useHostHandler = () => {
     } catch (err) {
       console.log(err);
     } finally {
-      nextPort += 1;
       proc.kill();
       processes.delete(path);
     }
@@ -106,7 +104,7 @@ export const useHostHandler = () => {
   });
 
   bus.subscribe("host.invoke.result", ({ properties: { path, output } }) => {
-    // console.log({ path, output });
+    console.log({ path, output });
   });
 
   return { invoke };

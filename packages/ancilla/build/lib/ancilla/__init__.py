@@ -36,12 +36,22 @@ def get_devices():
     return json.dumps([device.name for device in devices])
 
 
-def AncillaAPI():
-    return FastAPI()
+app = None
+
+environment = os.environ.get("ANCILLA_ENV", "prod")
+dry_run = os.environ.get("ANCILLA_DRY_RUN", "False") == "True"
+print(dry_run)
 
 
-print("wow", flush=True)
+def host(api, host="0.0.0.0", port=int(os.environ.get("PORT", "8080"))):
+    global app
+    app = api
+    if not dry_run:
+        uvicorn.run(api, host=host, port=port)
 
 
-def run(api, host="0.0.0.0", port=int(os.environ.get("PORT", "8080"))):
-    uvicorn.run(api, host=host, port=port)
+def get_app():
+    global app
+    if app is None:
+        raise Exception("App not initialized. Use host() to initialize.")
+    return app

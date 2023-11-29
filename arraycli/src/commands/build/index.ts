@@ -48,11 +48,25 @@ const copyFile = async (src: string, dest: string) => {
 
 const getDevicesFromPy = async (path: string) => {
   const pyPath = path.replace("/", ".");
-  const proc = Bun.spawn([
-    "python",
-    "-c",
-    `from ancilla import get_devices; from ${pyPath} import *; print(get_devices())`,
-  ]);
+  console.log("4");
+  const proc = Bun.spawn(
+    [
+      "python",
+      "-c",
+      `from ancilla import get_devices; from ${pyPath} import *; print(get_devices())`,
+    ],
+    {
+      stderr: "pipe",
+      stdout: "pipe",
+      env: {
+        ...process.env,
+        ANCILLA_DRY_RUN: "True",
+        ANCILLA_ENV: "dev",
+        PORT: "8080",
+      },
+    }
+  );
+  console.log("5");
   const out = (await new Response(proc.stdout).text()).trim();
   const err = (await new Response(proc.stderr).text()).trim();
   if (err) {

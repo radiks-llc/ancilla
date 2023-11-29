@@ -38,11 +38,14 @@ def get_devices():
 
 app = None
 
+environment = os.environ.get("ANCILLA_ENV", "prod")
+dry_run = os.environ.get("ANCILLA_DRY_RUN", "False") == "True"
+
 
 def host(api, host="0.0.0.0", port=int(os.environ.get("PORT", "8080"))):
     global app
     app = api
-    if __name__ == "__main__":
+    if not dry_run:
         uvicorn.run(api, host=host, port=port)
 
 
