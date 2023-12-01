@@ -4,6 +4,7 @@ import { Prompt, db, prompts } from "./db";
 import EventEmitter from "events";
 import { observable } from "@trpc/server/observable";
 import { useBus } from "@/bus";
+import { useFunctions } from "@/function";
 
 const ee = new EventEmitter();
 const t = initTRPC.create();
@@ -23,6 +24,7 @@ export const router = t.router({
       return () => ee.off("prompt", onPrompt);
     })
   ),
+  getFunctions: t.procedure.query(() => useFunctions().functions),
   // maybe an http endpoint for devices. functions are websockets, devices are http
   getPrompts: t.procedure.query(() => db.select().from(prompts)),
   sendPrompt: t.procedure

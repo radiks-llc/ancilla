@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { functionSchema } from "@/function";
 import { deviceSchema } from "./device";
+import { lazy } from "./util/lazy";
 
 type Route = {
   src: string;
@@ -37,10 +38,10 @@ export type Project = z.infer<typeof projectSchema>;
 
 let project: Project;
 
-export const useProject = () => {
+export const useProject = lazy(() => {
   if (project === null) throw new Error("Project not initialized");
   return project;
-};
+});
 
 export const setProject = (newProject: Project) => {
   project = newProject;

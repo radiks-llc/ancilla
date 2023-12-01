@@ -1,5 +1,6 @@
 "use client";
 
+// todo: make this acutally function
 export default function ConnectionIndicator() {
   return (
     <div className="absolute top-0 right-0 m-4">

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { lazy } from "./util/lazy";
 
 export const deviceSchema = z.object({
   handler: z.string(),
@@ -17,7 +18,7 @@ export type DeviceProps = z.infer<typeof deviceSchema>;
 
 let devices: DeviceProps[] = [];
 
-export const useDevices = () => devices;
+export const useDevices = lazy(() => devices);
 
 export const setDevices = (newDevices: DeviceProps[]) => {
   devices = newDevices;
